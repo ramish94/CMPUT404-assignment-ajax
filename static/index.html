@@ -38,8 +38,10 @@ function sendJSONXMLHTTPRequest(url, objects, callback) {
         if (xhr.readyState==4) {
             try {
                 if (xhr.status==200) {
-                    //XXX: parse some JSON from the request!
-                    //XXX: Pass the data to the callback!
+                    //DONE: parse some JSON from the request!
+                    //DONE: Pass the data to the callback!
+                    var parsed = JSON.parse(xhr.responseText);
+                    callback(parsed);
                 }
             } 
             catch(e) {
@@ -47,15 +49,21 @@ function sendJSONXMLHTTPRequest(url, objects, callback) {
             }
         }
     };
-    //XXX: POST to a URL
-    //XXX: set the mimetype and the accept headers!
+
+    //DONE: POST to a URL 
+    //DONE: set the mimetype and the accept headers!
     // Remember to use application/json !
+
+    xhr.open("POST", url);
+    xhr.setRequestHeader("Content-type", "application/json");
+    xhr.setRequestHeader("Accept", "application/json");
+    xhr.send(JSON.stringify(objects));
 }
 
 
 world = {};
 
-//XXX: TODO Make this prettier!
+//DONE: TODO Make this prettier!
 function drawCircle(context,entity) {
     with(context) {
         beginPath();              
@@ -65,8 +73,13 @@ function drawCircle(context,entity) {
         //moveTo(x,y);
         fillStyle = entity["colour"];
         strokeStyle = fillStyle;
-        arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);  
-        stroke();                                
+        arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);
+        var my_gradient=context.createLinearGradient(0,0,0,170);
+        my_gradient.addColorStop(0,"black");
+        my_gradient.addColorStop(1,"white");
+        context.fillStyle=my_gradient;   
+        stroke();
+        fill();                 
     }
 }
 
@@ -137,7 +150,9 @@ function getPosition(e) {
 function addEntity(entity, data) {
     world[entity] = data;
     drawNextFrame(); // (but should we?)
-    //XXX: Send a XHTML Request that updates the entity you just  modified!
+
+    var eURL = '/entity/' + entity
+    sendJSONXMLHTTPRequest(eURL, data, drawFrame)
 
 }
 
@@ -245,24 +260,33 @@ mouse = (function() {
 })();
 
 // Add the application specific mouse listeners!
-//XXX: TODO Make these prettier!
+//DONE: Make these prettier! -- Generates random color on mouse push
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
+    addEntityWithoutName({'x':x,'y':y,'colour':generateRandomColor()});
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'red'});
+    addEntityWithoutName({'x':x,'y':y,'colour':generateRandomColor()});
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'green',
+    addEntityWithoutName({'x':x,'y':y,'colour':generateRandomColor(),
                           'radius':10});
 });
 
+// SOURCE: http://stackoverflow.com/questions/5092808/how-do-i-randomly-generate-html-hex-color-codes-using-javascript
+
+function generateRandomColor() {
+    return '#'+(Math.random()*0xFFFFFF<<0).toString(16);
+}
+
 
 function update() {
-    //XXX: TODO Get the world from the webservice using a XMLHTTPRequest
-    drawFrame();
+    // DONE: TODO Get the world from the webservice using a XMLHTTPRequest
+    sendJSONXMLHTTPRequest("/world", null, function(getWorld) {
+        world = getWorld;
+    });
+    renderFrame();
 }
 
 // 30 frames per second
